@@ -9,7 +9,7 @@ from datetime import datetime
 
 
 # =============================================================================
-# Internal Helpers (duplicated from python-parser.py for standalone usage)
+# Internal Helpers (duplicated from company-model-parser-utils.py for standalone usage)
 # =============================================================================
 
 def _parse_column_key(column_key: str) -> dict:

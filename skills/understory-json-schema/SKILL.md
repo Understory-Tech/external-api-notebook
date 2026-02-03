@@ -68,6 +68,8 @@ Fields:
 - `dr` - Duration (12-months, 3-months)
 - `xtd` - Year-to-date indicator
 
+> **Note:** Either `pr` (period) or `ed` (end date) is required. The remaining fields (`sd`, `dr`, `xtd`) are optional.
+
 See [column-key-dsl.md](references/column-key-dsl.md) for parsing details and implementation.
 
 ### Value Types
@@ -119,7 +121,7 @@ See [source-meta-and-geometry.md](references/source-meta-and-geometry.md).
 
 ### 4. Evaluate Formulas
 Formula values contain recursive tree structures with operators and cell references.
-See [python-parser.py](examples/python-parser.py) for `evaluate_formula()`.
+See [cell-types-and-values.md](references/cell-types-and-values.md) for formula structure details.
 
 ### 5. Access Summary Metrics
 Extract MRQ, LTM values from the summary sheet's custom columns.
@@ -136,7 +138,6 @@ See [summary-sheet.py](examples/summary-sheet.py).
 
 ## Code Examples
 
-- [python-parser.py](examples/python-parser.py) - Core parsing utilities
-- [typescript-types.ts](examples/typescript-types.ts) - TypeScript type definitions (mirrors OpenAPI)
+- [company-model-parser-utils.py](examples/company-model-parser-utils.py) - Core parsing utilities
 - [common-operations.py](examples/common-operations.py) - Common extraction patterns
 - [summary-sheet.py](examples/summary-sheet.py) - Summary sheet utilities

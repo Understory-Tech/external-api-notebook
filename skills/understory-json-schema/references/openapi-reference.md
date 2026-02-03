@@ -131,4 +131,4 @@ curl -o api.json https://api.demo.understorytech.com/docs-json
 npx openapi-typescript api.json -o types/api.ts
 ```
 
-The `examples/typescript-types.ts` file provides a hand-written reference that mirrors the OpenAPI schemas.
+Types can also be auto-generated from the OpenAPI spec using the command above.

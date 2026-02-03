@@ -4,7 +4,7 @@ Understory CompanyModel JSON Parser Utilities
 Core utilities for parsing and extracting data from Understory API CompanyModel JSON.
 """
 
-from typing import Any, Callable, Generator, Optional
+from typing import Any, Generator, Optional
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -300,125 +300,6 @@ def extract_value(cell: dict) -> tuple[Any, str]:
     return None, val_type or 'unknown'
 
 
-def format_value(value: Any, value_type: str, decimal_places: int = 0) -> str:
-    """
-    Format a value for display.
-
-    Args:
-        value: The numeric value
-        value_type: Type string (dollar, percent, number, multiple)
-        decimal_places: Number of decimal places
-
-    Returns:
-        Formatted string
-    """
-    if value is None:
-        return ''
-
-    try:
-        if value_type == 'percent':
-            return f"{value * 100:.{decimal_places}f}%"
-        elif value_type == 'dollar':
-            return f"${value:,.{decimal_places}f}"
-        elif value_type == 'multiple':
-            return f"{value:.{decimal_places}f}x"
-        else:
-            return f"{value:,.{decimal_places}f}"
-    except (TypeError, ValueError):
-        return str(value)
-
-
-# =============================================================================
-# Formula Evaluation
-# =============================================================================
-
-def evaluate_formula(
-    formula: Optional[dict],
-    cell_lookup: Callable[[str, str], Optional[float]]
-) -> Optional[float]:
-    """
-    Recursively evaluate a formula tree.
-
-    Args:
-        formula: Formula tree dictionary
-        cell_lookup: Function that takes (row_defined_name, column_key) and
-                     returns the numeric value
-
-    Returns:
-        Computed value or None if evaluation fails
-    """
-    if formula is None:
-        return None
-
-    # Check for operator
-    operator = formula.get('operator')
-
-    if operator:
-        # Binary operators
-        if operator in ('ADD', 'SUBTRACT', 'MULTIPLY', 'DIVIDE'):
-            left = evaluate_formula(formula.get('left'), cell_lookup)
-            right = evaluate_formula(formula.get('right'), cell_lookup)
-
-            if left is None or right is None:
-                return None
-
-            if operator == 'ADD':
-                return left + right
-            elif operator == 'SUBTRACT':
-                return left - right
-            elif operator == 'MULTIPLY':
-                return left * right
-            elif operator == 'DIVIDE':
-                return left / right if right != 0 else None
-
-        # Unary operators
-        elif operator == 'NEGATE':
-            operand = evaluate_formula(formula.get('operand'), cell_lookup)
-            return -operand if operand is not None else None
-
-    # Cell reference
-    if 'value' in formula:
-        ref = formula['value']
-        if isinstance(ref, dict):
-            row_name = ref.get('rowDefinedName')
-            col_key = ref.get('colKey')
-            if row_name and col_key:
-                return cell_lookup(row_name, col_key)
-        elif isinstance(ref, (int, float)):
-            return float(ref)
-
-    return None
-
-
-def build_cell_lookup(model: dict) -> Callable[[str, str], Optional[float]]:
-    """
-    Build a cell lookup function from a model.
-
-    Args:
-        model: The CompanyModel dictionary
-
-    Returns:
-        Function that takes (row_defined_name, column_key) and returns value
-    """
-    # Build index of all cells
-    cell_index: dict[tuple[str, str], float] = {}
-
-    for ctx in traverse_model(model):
-        cell = ctx.cell
-        col_key = cell.get('columnKey')
-        if not col_key:
-            continue
-
-        value, _ = extract_value(cell)
-        if value is not None and isinstance(value, (int, float)):
-            cell_index[(ctx.row_defined_name, col_key)] = float(value)
-
-    def lookup(row_defined_name: str, column_key: str) -> Optional[float]:
-        return cell_index.get((row_defined_name, column_key))
-
-    return lookup
-
-
 # =============================================================================
 # Column Matching
 # =============================================================================
@@ -446,27 +327,6 @@ def find_column_for_cell(cell: dict, column_groups: list) -> Optional[dict]:
     return None
 
 
-def get_column_end_date(column: dict) -> Optional[datetime]:
-    """
-    Extract the end date from a column definition.
-
-    Args:
-        column: Column definition dictionary
-
-    Returns:
-        datetime object or None
-    """
-    end_date_str = column.get('endDate')
-    if not end_date_str:
-        return None
-
-    try:
-        # Handle ISO format: 2023-12-31T00:00:00.000Z
-        return datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
-    except ValueError:
-        return None
-
-
 # =============================================================================
 # Example Usage
 # =============================================================================
@@ -476,7 +336,7 @@ if __name__ == '__main__':
     import sys
 
     if len(sys.argv) < 2:
-        print("Usage: python python-parser.py <model.json>")
+        print("Usage: python company-model-parser-utils.py <model.json>")
         sys.exit(1)
 
     with open(sys.argv[1]) as f:
