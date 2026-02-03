@@ -1,357 +1,75 @@
 # Data Model Hierarchy
 
-This document describes the complete hierarchy of the Understory CompanyModel JSON structure.
+This document provides a structural overview of the Understory CompanyModel JSON. For complete field definitions, see the [OpenAPI spec](https://api.demo.understorytech.com/docs) → `#/components/schemas/companyJsonModel`.
 
-## Top-Level Keys
+## Hierarchy Overview
 
-| Key | Type | Description |
-|-----|------|-------------|
-| `companyModelId` | string | Unique identifier for this model |
-| `companyId` | UUID | Parent company identifier |
-| `companyName` | string | Display name (includes filing types) |
-| `columnGroups` | array | Time period column definitions |
-| `tableGroups` | array | Financial data organized by category |
-| `summary` | object | Summary sheet (optional, version >= 2.0.0) |
-| `skippedTables` | array | Tables excluded from the stitched model |
-| `figures` | object | Chart and graph data |
-| `meta` | object | Generation metadata |
-
----
+```
+CompanyModel
+├── companyModelId, companyId, companyName
+├── meta (version, createdAt, modelType, withFigures)
+├── columnGroups[]           → Time period definitions
+│   └── columns[]            → Individual column with key, period, duration
+├── tableGroups[]            → Financial data by category
+│   └── tables[]
+│       └── sections[]
+│           └── data[]       → rows and nested sections
+│               └── cells[]  → values with sourceMeta
+├── summary                  → Summary sheet (v2.0.0+)
+├── skippedTables[]          → Tables excluded from stitching
+└── figures                  → Chart/graph data
+```
 
 ## Column Groups
 
-Column groups define the time periods (columns) available in the model. Each group has a specific type and contains column definitions.
+Column groups define time periods. See OpenAPI `companyJsonModel.columnGroups[].type` for the full enum of group types (e.g., `standardFyPeriods`, `standard3MonthPeriods`, `dateRanges`).
 
-### Structure
-
-```json
-{
-  "columnGroups": [
-    {
-      "type": "standardFyPeriods",
-      "columns": [
-        {
-          "period": {
-            "term": {
-              "type": "FY",
-              "standardDurationInMonths": 12
-            },
-            "year": { "year": 2023 }
-          },
-          "endDate": "2023-12-31T00:00:00.000Z",
-          "duration": {
-            "numberOfMonths": 12,
-            "number": 12,
-            "unit": "months"
-          },
-          "stub": false,
-          "key": "pr=FY-2023|ed=12/31/2023|dr=12-months"
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Column Group Types
-
-| Type | Description |
-|------|-------------|
-| `standardFyPeriods` | Fiscal year periods (FY-2023, FY-2022, etc.) |
-| `standard3MonthPeriods` | Quarterly periods (Q1-2024, Q2-2024, etc.) |
-| `standard1MonthDurations` | Monthly periods |
-| `standardFyDurations` | Annual durations without specific period labels |
-| `dateRanges` | Custom date ranges with start and end dates |
-| `ytdDates` | Year-to-date periods |
-| `endDatesNoDuration` | Point-in-time dates without duration |
-
-### Column Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `period` | object | Period information (term type, year) |
-| `period.term.type` | string | "FY" or "Q" with optional number |
-| `period.year.year` | number | Fiscal year |
-| `endDate` | ISO-8601 | Period end date |
-| `startDate` | ISO-8601 | Period start date (for ranges) |
-| `duration` | object | Duration specification |
-| `stub` | boolean | Whether this is a stub period |
-| `key` | string | DSL key for matching cells |
-
----
+Each column has a `key` in DSL format (see [column-key-dsl.md](column-key-dsl.md)) used to match cells.
 
 ## Table Groups
 
-Table groups organize financial data by category. Each group contains one or more tables.
+Table groups organize data by category. See OpenAPI `companyJsonModel.tableGroups[].category` for valid categories (Income Statement, Balance Sheet, Cash Flow, etc.).
 
-### Structure
+### Structure Flow
 
-```json
-{
-  "tableGroups": [
-    {
-      "category": "Income Statement",
-      "tables": [
-        {
-          "id": "ddsprc5a",
-          "tableType": "incomeStatement",
-          "name": "Income Statement",
-          "textractTitle": "Consolidated Statements of Operations",
-          "description": "...",
-          "index": 0,
-          "sourceTableIds": ["abc123", "def456"],
-          "sections": [...]
-        }
-      ]
-    }
-  ]
-}
 ```
-
-### Common Categories
-
-- Income Statement
-- Balance Sheet
-- Cash Flow Statement
-- Comprehensive Income
-- Stockholders' Equity
-- Revenue Segmentation
-- Geographic Segmentation
-- Operating Expenses
-- Debt Schedule
-- Other
-
-### Table Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string | Unique table identifier |
-| `tableType` | string | Semantic type (incomeStatement, balanceSheet, etc.) |
-| `name` | string | Display name |
-| `textractTitle` | string | Title from source PDF |
-| `description` | string | AI-generated description |
-| `index` | number | Sort order within group |
-| `sourceTableIds` | array | IDs of source FileModel tables |
-| `sections` | array | Table sections containing rows |
-
----
-
-## Sections
-
-Sections organize rows within a table. A section contains a data array with rows and potentially nested subsections.
-
-### Structure
-
-```json
-{
-  "sections": [
-    {
-      "type": "rbfSection",
-      "name": "none",
-      "isMainSection": true,
-      "data": [
-        { "type": "row", ... },
-        { "type": "section", ... }
-      ]
-    }
-  ]
-}
+tableGroups[].tables[].sections[].data[] → rows with cells
 ```
-
-### Section Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | string | Always "rbfSection" |
-| `name` | string | Section name (or "none") |
-| `isMainSection` | boolean | Whether this is the primary section |
-| `data` | array | Array of rows and nested sections |
-
-### Data Item Types
 
 The `data` array can contain:
-- `{ "type": "row", ... }` - Data rows with cells
+- `{ "type": "row", ... }` - Data rows with label and cells
 - `{ "type": "section", ... }` - Nested subsections
-
----
 
 ## Rows
 
-Rows contain the actual financial data. Each row has a label and an array of cells.
+Rows contain financial data. See OpenAPI `#/components/schemas/modelRow` for field definitions.
 
-### Structure
-
-```json
-{
-  "type": "row",
-  "label": {
-    "definedName": "r_table_ddsprc5a_section_none_row_revenue_1",
-    "text": "REVENUE",
-    "style": "header",
-    "comment": {
-      "texts": [
-        {
-          "text": "2 row label variations found...",
-          "font": { "bold": true }
-        }
-      ]
-    }
-  },
-  "cells": [...]
-}
-```
-
-### Row Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | string | Always "row" |
-| `label` | object | Row label information |
-| `label.definedName` | string | Unique identifier for formulas |
-| `label.text` | string | Display text |
-| `label.style` | string | "header", "subheader", "total", etc. |
-| `label.comment` | object | Rich text annotations |
-| `cells` | array | Cell values for each period |
-
----
+Key fields:
+- `label.text` - Display text (e.g., "REVENUE")
+- `label.definedName` - Unique identifier for formula references
+- `label.style` - Row style (header, subheader, total, etc.)
+- `cells[]` - Values for each time period
 
 ## Cells
 
-Cells contain the actual data values with full metadata and source traceability.
-
-### Structure
-
-```json
-{
-  "value": {
-    "type": "dollar",
-    "value": 918688,
-    "format": "american",
-    "decimalPlaces": 0
-  },
-  "columnKey": "pr=FY-2021|ed=12/31/2021|dr=12-months",
-  "isForecast": false,
-  "isDeprecated": false,
-  "definedName": "table_zihiurdn_row_3_column_4",
-  "link": "company/{companyId}/files/{fileId}?page=80&table=zihiurdn",
-  "comment": {
-    "texts": [
-      { "text": "Filename: ", "font": { "bold": true } },
-      { "text": "2023-12-31 - 10-K - 10-K.pdf" }
-    ]
-  },
-  "sourceMeta": {
-    "fileId": "02d399ee-aa37-4aca-b3a5-ee8cf057228a",
-    "pageId": "cfa0039a-9716-4590-b9b8-52e8c452d8d9",
-    "tableId": "zihiurdn",
-    "pageNumber": 80,
-    "rowIndex": 3,
-    "columnIndex": 4,
-    "boundingBox": {
-      "top": 0.172,
-      "left": 0.826,
-      "width": 0.124,
-      "height": 0.014
-    }
-  },
-  "sourceRowIds": ["table_zihiurdn_row_3", "table_r7xz3ylr_row_3"],
-  "outdatedCells": null
-}
-```
-
-### Cell Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `value` | object | The data value (see Value Types) |
-| `columnKey` | string | DSL key matching a column definition |
-| `isForecast` | boolean | Whether this is a forecast value |
-| `isDeprecated` | boolean | Whether this value is outdated |
-| `isCustom` | boolean | Whether this is a synthetic value (summary only) |
-| `definedName` | string | Unique identifier for formula references |
-| `link` | string | Relative URL to view source |
-| `comment` | object | Rich text annotations |
-| `sourceMeta` | object | PDF source location |
-| `sourceRowIds` | array | IDs of source FileModel rows |
-| `outdatedCells` | array | Previous values if updated |
-| `fontColor` | string | Hex color code (summary only) |
-
----
-
-## Skipped Tables
-
-Tables that were parsed from source PDFs but not included in the stitched model.
-
-### Structure
-
-```json
-{
-  "skippedTables": [
-    {
-      "id": "kfhkkryy",
-      "title": "Table of Contents",
-      "description": "...",
-      "document": {
-        "filename": "2025-06-30 - 10-Q - 10-Q.pdf",
-        "id": "uuid"
-      },
-      "source": "table",
-      "firstPageNumber": 2,
-      "firstPageTopPosition": 0.21,
-      "textractTitle": "...",
-      "data": [...],
-      "levenshteinId": "...",
-      "usedRbfCount": 0,
-      "densityScore": 0.5,
-      "rowCount": 15
-    }
-  ]
-}
-```
-
----
-
-## Figures
-
-Chart and graph data extracted from source PDFs.
-
-### Structure
-
-```json
-{
-  "figures": {
-    "columnGroups": [...],
-    "tableGroups": [...]
-  }
-}
-```
-
-Figures follow a similar structure to the main model but contain data points extracted from charts rather than tables.
-
----
+Cells contain values with full metadata. Key fields:
+- `value` - The data (see [cell-types-and-values.md](cell-types-and-values.md))
+- `columnKey` - Matches a column definition
+- `sourceMeta` - PDF source location (see [source-meta-and-geometry.md](source-meta-and-geometry.md))
+- `isForecast`, `isDeprecated` - Status flags
 
 ## Meta
 
-Model generation metadata.
+Model generation metadata:
+- `createdAt` - ISO-8601 timestamp
+- `version` - Schema version (e.g., "2.0.0")
+- `modelType` - Output format type
+- `withFigures` - Whether figures are included
 
-### Structure
+## Skipped Tables
 
-```json
-{
-  "meta": {
-    "createdAt": "2026-01-28T00:36:26.809Z",
-    "version": "2.0.0",
-    "modelType": "json-condensed",
-    "withFigures": true
-  }
-}
-```
+Tables parsed from PDFs but not included in the stitched model. Contains the original table data, document info, and position on page.
 
-### Meta Fields
+## Figures
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `createdAt` | ISO-8601 | Generation timestamp |
-| `version` | string | Model schema version |
-| `modelType` | string | Output format type |
-| `withFigures` | boolean | Whether figures are included |
+Chart and graph data follows a similar structure with its own `columnGroups` and `tableGroups`.

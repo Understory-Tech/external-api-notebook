@@ -16,30 +16,25 @@ Provides comprehensive documentation for the Understory API's CompanyModel JSON 
 
 ---
 
+## OpenAPI Reference
+
+For authoritative schema definitions, refer to the [OpenAPI specification](https://api.demo.understorytech.com/docs). Key schemas:
+
+| Schema | Location |
+|--------|----------|
+| CompanyModel | `#/components/schemas/companyJsonModel` |
+| Cell values | `#/components/schemas/cellValue` |
+| Source metadata | `#/components/schemas/sourceMetadata` |
+| Period/Duration | `#/components/schemas/period`, `#/components/schemas/duration` |
+| Rows | `#/components/schemas/modelRow` |
+
+See [openapi-reference.md](references/openapi-reference.md) for navigation guidance.
+
+---
+
 ## Overview
 
 The Understory API generates structured JSON representations of financial models extracted from PDF documents. A **CompanyModel** contains stitched financial data from multiple uploaded files (10-Ks, 10-Qs, etc.), organized into hierarchical tables with full traceability back to source PDFs.
-
-## Top-Level Structure
-
-```json
-{
-  "companyModelId": "string",    // Unique model identifier
-  "companyId": "uuid",           // Parent company UUID
-  "companyName": "string",       // Display name
-  "columnGroups": [...],         // Time period definitions
-  "tableGroups": [...],          // Financial data (Income Statement, Balance Sheet, etc.)
-  "summary": {...},              // Summary sheet (optional, version >= 2.0.0)
-  "skippedTables": [...],        // Tables excluded from stitching
-  "figures": {...},              // Chart/graph data
-  "meta": {                      // Generation metadata
-    "createdAt": "ISO-8601",
-    "version": "2.0.0",
-    "modelType": "json-condensed",
-    "withFigures": true
-  }
-}
-```
 
 ## Data Hierarchy
 
@@ -55,11 +50,13 @@ Each **cell** contains:
 - `sourceMeta` - Traceability back to the source PDF location
 - Metadata flags (`isForecast`, `isDeprecated`, etc.)
 
+See [data-model-hierarchy.md](references/data-model-hierarchy.md) for structural overview.
+
 ## Key Concepts
 
 ### Column Keys (DSL Format)
 
-Column keys use a pipe-delimited DSL format:
+Column keys use a pipe-delimited DSL format unique to Understory:
 ```
 pr=FY-2023|ed=12/31/2023|dr=12-months
 ```
@@ -71,70 +68,38 @@ Fields:
 - `dr` - Duration (12-months, 3-months)
 - `xtd` - Year-to-date indicator
 
-See [column-key-dsl.md](references/column-key-dsl.md) for parsing details.
+See [column-key-dsl.md](references/column-key-dsl.md) for parsing details and implementation.
 
 ### Value Types
 
-Cells can have these value types:
-- `dollar` - Currency values with format and decimal places
-- `number` - Numeric values (counts, shares, etc.)
-- `percent` - Percentage values (stored as decimals, e.g., 0.057 = 5.7%)
-- `formula` - Calculated values with recursive formula trees
-- `string` - Text values
-- `multiple` - Multiplier values (e.g., 13.7x)
+Cells can have these value types: `dollar`, `number`, `percent`, `formula`, `string`, `multiple`.
 
-See [cell-types-and-values.md](references/cell-types-and-values.md) for complete details.
+Key points:
+- **Percentages** are stored as decimals (0.057 = 5.7%)
+- **Formulas** contain recursive tree structures for calculations
+- See OpenAPI `#/components/schemas/cellValue` for complete type definitions
+
+See [cell-types-and-values.md](references/cell-types-and-values.md) for practical usage.
 
 ### Source Traceability
 
-Every cell includes `sourceMeta` linking back to the source PDF:
-```json
-{
-  "sourceMeta": {
-    "fileId": "uuid",
-    "pageId": "uuid",
-    "pageNumber": 80,
-    "tableId": "string",
-    "rowIndex": 3,
-    "columnIndex": 4,
-    "boundingBox": {
-      "top": 0.172,      // Ratio from top (0.0 to 1.0)
-      "left": 0.826,     // Ratio from left
-      "width": 0.124,
-      "height": 0.014
-    }
-  }
-}
-```
+Every cell includes `sourceMeta` linking back to the source PDF with bounding box coordinates as **ratios of page dimensions** (0.0 to 1.0), not pixels.
 
-Bounding box coordinates are **ratios of page dimensions**, not pixels. To convert:
+To convert to pixels:
 ```python
 pixel_x = left * page_width_px
 pixel_y = top * page_height_px
 ```
 
-See [source-meta-and-geometry.md](references/source-meta-and-geometry.md) for details.
+See [source-meta-and-geometry.md](references/source-meta-and-geometry.md) for conversion utilities.
 
 ### Summary Sheet (Version 2.0.0+)
 
-Models generated with summary configuration include a `summary` object:
-```json
-{
-  "summary": {
-    "table": {...},           // Same structure: sections → rows → cells
-    "columnGroups": [...],    // Period definitions for summary
-    "customColumns": [        // Synthetic columns (MRQ, LTM, etc.)
-      {
-        "key": "mrq",
-        "label": "MRQ",
-        "syntheticColumnKey": "pr=Q3-2025|ed=9/30/2025"
-      }
-    ]
-  }
-}
-```
-
-Summary cells include `isCustom: true` for synthetic columns and `fontColor` for styling.
+Models generated with summary configuration include a `summary` object with custom columns:
+- `mrq` - Most Recent Quarter
+- `mrqMinusOne` - Same quarter, previous year
+- `ltm` - Last Twelve Months (trailing)
+- `ltmMinusOne` - LTM from previous year
 
 See [summary-sheet.md](references/summary-sheet.md) for details.
 
@@ -162,15 +127,16 @@ See [summary-sheet.py](examples/summary-sheet.py).
 
 ## Reference Documentation
 
-- [data-model-hierarchy.md](references/data-model-hierarchy.md) - Complete hierarchy documentation
-- [column-key-dsl.md](references/column-key-dsl.md) - Column key parsing guide
-- [cell-types-and-values.md](references/cell-types-and-values.md) - Value type documentation
-- [source-meta-and-geometry.md](references/source-meta-and-geometry.md) - PDF traceability
-- [summary-sheet.md](references/summary-sheet.md) - Summary sheet structure
+- [openapi-reference.md](references/openapi-reference.md) - OpenAPI spec navigation guide
+- [data-model-hierarchy.md](references/data-model-hierarchy.md) - Structural overview
+- [column-key-dsl.md](references/column-key-dsl.md) - Column key parsing (unique content)
+- [cell-types-and-values.md](references/cell-types-and-values.md) - Value handling and formulas
+- [source-meta-and-geometry.md](references/source-meta-and-geometry.md) - PDF traceability utilities
+- [summary-sheet.md](references/summary-sheet.md) - Summary sheet custom columns
 
 ## Code Examples
 
 - [python-parser.py](examples/python-parser.py) - Core parsing utilities
-- [typescript-types.ts](examples/typescript-types.ts) - TypeScript type definitions
+- [typescript-types.ts](examples/typescript-types.ts) - TypeScript type definitions (mirrors OpenAPI)
 - [common-operations.py](examples/common-operations.py) - Common extraction patterns
 - [summary-sheet.py](examples/summary-sheet.py) - Summary sheet utilities

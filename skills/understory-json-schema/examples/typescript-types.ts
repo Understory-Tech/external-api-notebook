@@ -2,6 +2,16 @@
  * Understory CompanyModel TypeScript Type Definitions
  *
  * Complete type definitions for the Understory API CompanyModel JSON structure.
+ *
+ * NOTE: These types mirror the OpenAPI specification.
+ * Types can also be auto-generated from the OpenAPI spec using tools like:
+ * - openapi-typescript: `npx openapi-typescript api.json -o types/api.ts`
+ * - openapi-generator: https://openapi-generator.tech/
+ *
+ * This hand-written file is provided as a reference implementation and may
+ * include additional utility types not present in the OpenAPI spec.
+ *
+ * See: https://api.demo.understorytech.com/docs → #/components/schemas/companyJsonModel
  */
 
 // =============================================================================

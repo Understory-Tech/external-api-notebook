@@ -1,47 +1,20 @@
 # Source Meta and Geometry
 
-This document explains how to trace CompanyModel cells back to their source PDF locations using `sourceMeta` and bounding box coordinates.
+This document provides utilities for working with source traceability and bounding box coordinates. For the `sourceMetadata` schema definition, see [OpenAPI spec](https://api.demo.understorytech.com/docs) → `#/components/schemas/sourceMetadata`.
 
-## Source Meta Structure
+## Source Meta Overview
 
-Every cell with a source PDF location includes a `sourceMeta` object:
-
-```json
-{
-  "sourceMeta": {
-    "fileId": "02d399ee-aa37-4aca-b3a5-ee8cf057228a",
-    "pageId": "cfa0039a-9716-4590-b9b8-52e8c452d8d9",
-    "tableId": "zihiurdn",
-    "pageNumber": 80,
-    "rowIndex": 3,
-    "columnIndex": 4,
-    "boundingBox": {
-      "top": 0.1720634251832962,
-      "left": 0.8256401419639587,
-      "width": 0.12356248497962952,
-      "height": 0.014005137607455254
-    }
-  }
-}
-```
-
-### Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `fileId` | UUID | Source file identifier (use with Files API) |
-| `pageId` | UUID | Specific page identifier |
-| `tableId` | string | Table identifier within the page |
-| `pageNumber` | number | 1-based page number |
-| `rowIndex` | number | 0-based row index within the table |
-| `columnIndex` | number | 0-based column index within the table |
-| `boundingBox` | object | Visual coordinates on the page |
-
----
+Every cell with a source PDF location includes a `sourceMeta` object with:
+- `fileId` - Source file UUID
+- `pageId` - Page UUID
+- `tableId` - Table identifier
+- `pageNumber` - 1-based page number
+- `rowIndex`, `columnIndex` - Position in source table
+- `boundingBox` - Visual coordinates
 
 ## Bounding Box Coordinate System
 
-Bounding boxes use **ratio coordinates** relative to page dimensions, not pixels.
+Bounding boxes use **ratio coordinates** (0.0 to 1.0) relative to page dimensions, not pixels.
 
 ```json
 {
@@ -54,20 +27,7 @@ Bounding boxes use **ratio coordinates** relative to page dimensions, not pixels
 }
 ```
 
-### Coordinate Ranges
-
-All values are ratios between 0.0 and 1.0:
-
-| Field | Range | Description |
-|-------|-------|-------------|
-| `top` | 0.0 - 1.0 | Distance from top edge (0 = top, 1 = bottom) |
-| `left` | 0.0 - 1.0 | Distance from left edge (0 = left, 1 = right) |
-| `width` | 0.0 - 1.0 | Width as fraction of page width |
-| `height` | 0.0 - 1.0 | Height as fraction of page height |
-
-### Converting to Pixel Coordinates
-
-To convert ratios to pixel coordinates, multiply by page dimensions:
+## Converting to Pixel Coordinates
 
 ```python
 def bbox_to_pixels(bbox: dict, page_width: int, page_height: int) -> dict:
@@ -92,30 +52,12 @@ def bbox_to_pixels(bbox: dict, page_width: int, page_height: int) -> dict:
     }
 
 
-# Example usage
-bbox = {
-    "top": 0.172,
-    "left": 0.826,
-    "width": 0.124,
-    "height": 0.014
-}
-
-# Standard letter-size PDF at 150 DPI
+# Example: Standard letter-size PDF at 150 DPI
 page_width = 1275   # 8.5 inches * 150 DPI
 page_height = 1650  # 11 inches * 150 DPI
 
 pixels = bbox_to_pixels(bbox, page_width, page_height)
-# {
-#   'x': 1053,
-#   'y': 283,
-#   'width': 158,
-#   'height': 23,
-#   'x2': 1211,
-#   'y2': 306
-# }
 ```
-
----
 
 ## Drawing Highlights
 
@@ -129,20 +71,13 @@ def highlight_cell(image_path: str, bbox: dict, output_path: str):
     img = Image.open(image_path)
     page_width, page_height = img.size
 
-    # Convert to pixels
     x = int(bbox['left'] * page_width)
     y = int(bbox['top'] * page_height)
     w = int(bbox['width'] * page_width)
     h = int(bbox['height'] * page_height)
 
-    # Draw rectangle
     draw = ImageDraw.Draw(img)
-    draw.rectangle(
-        [x, y, x + w, y + h],
-        outline='red',
-        width=2
-    )
-
+    draw.rectangle([x, y, x + w, y + h], outline='red', width=2)
     img.save(output_path)
 ```
 
@@ -166,7 +101,7 @@ function highlightCell(ctx, bbox, pageWidth, pageHeight) {
 For overlay elements:
 
 ```javascript
-function getCellStyle(bbox, containerWidth, containerHeight) {
+function getCellStyle(bbox) {
   return {
     position: 'absolute',
     left: `${bbox.left * 100}%`,
@@ -179,101 +114,9 @@ function getCellStyle(bbox, containerWidth, containerHeight) {
 }
 ```
 
----
-
-## Accessing Detailed Geometry via FileModel API
-
-For more detailed geometry data (individual word positions, cell polygons), use the FileModel API.
-
-### API Endpoint
-
-```
-GET /companies/{companyId}/files/{fileId}/fileModel
-```
-
-### FileModel Structure
-
-```json
-{
-  "fileModelId": "string",
-  "fileId": "uuid",
-  "pages": [
-    {
-      "pageId": "uuid",
-      "pageNumber": 1,
-      "tables": [
-        {
-          "tableId": "string",
-          "boundingBox": {...},
-          "rows": [
-            {
-              "rowIndex": 0,
-              "cells": [
-                {
-                  "columnIndex": 0,
-                  "boundingBox": {...},
-                  "polygon": [
-                    {"x": 0.1, "y": 0.2},
-                    {"x": 0.3, "y": 0.2},
-                    {"x": 0.3, "y": 0.25},
-                    {"x": 0.1, "y": 0.25}
-                  ],
-                  "words": [
-                    {
-                      "text": "$918,688",
-                      "boundingBox": {...},
-                      "confidence": 99.5
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Polygon Coordinates
-
-FileModel cells may include `polygon` arrays for irregular shapes:
-
-```json
-{
-  "polygon": [
-    {"x": 0.1, "y": 0.2},
-    {"x": 0.3, "y": 0.2},
-    {"x": 0.3, "y": 0.25},
-    {"x": 0.1, "y": 0.25}
-  ]
-}
-```
-
-Polygons are also ratio coordinates (0.0 to 1.0).
-
----
-
 ## Building Source Links
 
-### Understory UI Link
-
-The `link` field provides a relative path:
-
-```json
-{
-  "link": "company/05017094-d232-4162-8d97-8be6326db968/files/02d399ee-aa37-4aca-b3a5-ee8cf057228a?page=80&table=zihiurdn"
-}
-```
-
-Construct full URL:
-```python
-base_url = "https://yourcompany.understorytech.com"
-full_url = f"{base_url}/{cell['link']}"
-```
-
-### Building from sourceMeta
+The `link` field provides a relative path to the Understory UI:
 
 ```python
 def build_source_url(source_meta: dict, company_id: str, base_url: str) -> str:
@@ -286,18 +129,11 @@ def build_source_url(source_meta: dict, company_id: str, base_url: str) -> str:
     )
 ```
 
----
-
 ## Collecting All Source Locations
 
 ```python
 def get_all_source_locations(model: dict) -> list:
-    """
-    Extract all source locations from a model.
-
-    Returns:
-        List of dicts with row info and sourceMeta
-    """
+    """Extract all source locations from a model."""
     locations = []
 
     for table_group in model.get('tableGroups', []):
@@ -321,3 +157,13 @@ def get_all_source_locations(model: dict) -> list:
 
     return locations
 ```
+
+## FileModel API for Detailed Geometry
+
+For more detailed geometry (word positions, cell polygons), use the FileModel API:
+
+```
+GET /companies/{companyId}/files/{fileId}/fileModel
+```
+
+FileModel cells may include `polygon` arrays for irregular shapes (also ratio coordinates 0.0-1.0).
