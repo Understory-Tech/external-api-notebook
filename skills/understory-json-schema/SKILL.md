@@ -61,16 +61,7 @@ Column keys use a pipe-delimited DSL format unique to Understory:
 pr=FY-2023|ed=12/31/2023|dr=12-months
 ```
 
-Fields:
-- `pr` - Period (FY-2023, Q1-2024, etc.)
-- `ed` - End date
-- `sd` - Start date (for ranges)
-- `dr` - Duration (12-months, 3-months)
-- `xtd` - Year-to-date indicator
-
-> **Note:** Either `pr` (period) or `ed` (end date) is required. The remaining fields (`sd`, `dr`, `xtd`) are optional.
-
-See [column-key-dsl.md](references/column-key-dsl.md) for parsing details and implementation.
+See [column-key-dsl.md](references/column-key-dsl.md) for field definitions, common patterns, and parsing implementations.
 
 ### Value Types
 
@@ -81,29 +72,19 @@ Key points:
 - **Formulas** contain recursive tree structures for calculations
 - See OpenAPI `#/components/schemas/cellValue` for complete type definitions
 
-See [cell-types-and-values.md](references/cell-types-and-values.md) for practical usage.
+See [openapi-reference.md](references/openapi-reference.md) for complete type definitions.
 
 ### Source Traceability
 
 Every cell includes `sourceMeta` linking back to the source PDF with bounding box coordinates as **ratios of page dimensions** (0.0 to 1.0), not pixels.
 
-To convert to pixels:
-```python
-pixel_x = left * page_width_px
-pixel_y = top * page_height_px
-```
-
-See [source-meta-and-geometry.md](references/source-meta-and-geometry.md) for conversion utilities.
+See [source-meta-and-geometry.md](references/source-meta-and-geometry.md) for coordinate conversion and highlighting utilities.
 
 ### Summary Sheet (Version 2.0.0+)
 
-Models generated with summary configuration include a `summary` object with custom columns:
-- `mrq` - Most Recent Quarter
-- `mrqMinusOne` - Same quarter, previous year
-- `ltm` - Last Twelve Months (trailing)
-- `ltmMinusOne` - LTM from previous year
+Models generated with summary configuration include a `summary` object with synthetic columns for common analysis periods (MRQ, LTM, etc.).
 
-See [summary-sheet.md](references/summary-sheet.md) for details.
+See [summary-sheet.md](references/summary-sheet.md) for custom column definitions and structure.
 
 ## Common Use Cases
 
@@ -121,7 +102,7 @@ See [source-meta-and-geometry.md](references/source-meta-and-geometry.md).
 
 ### 4. Evaluate Formulas
 Formula values contain recursive tree structures with operators and cell references.
-See [cell-types-and-values.md](references/cell-types-and-values.md) for formula structure details.
+See [openapi-reference.md](references/openapi-reference.md#formula-tree-structure-unique) for formula structure details.
 
 ### 5. Access Summary Metrics
 Extract MRQ, LTM values from the summary sheet's custom columns.
@@ -132,7 +113,6 @@ See [summary-sheet.py](examples/summary-sheet.py).
 - [openapi-reference.md](references/openapi-reference.md) - OpenAPI spec navigation guide
 - [data-model-hierarchy.md](references/data-model-hierarchy.md) - Structural overview
 - [column-key-dsl.md](references/column-key-dsl.md) - Column key parsing (unique content)
-- [cell-types-and-values.md](references/cell-types-and-values.md) - Value handling and formulas
 - [source-meta-and-geometry.md](references/source-meta-and-geometry.md) - PDF traceability utilities
 - [summary-sheet.md](references/summary-sheet.md) - Summary sheet custom columns
 

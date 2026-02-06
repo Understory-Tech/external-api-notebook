@@ -53,23 +53,11 @@ Key fields:
 ## Cells
 
 Cells contain values with full metadata. Key fields:
-- `value` - The data (see [cell-types-and-values.md](cell-types-and-values.md))
+- `value` - The data (see [openapi-reference.md](openapi-reference.md) for value types)
 - `columnKey` - Matches a column definition
 - `sourceMeta` - PDF source location (see [source-meta-and-geometry.md](source-meta-and-geometry.md))
 - `isForecast`, `isDeprecated` - Status flags
 
-## Meta
-
-Model generation metadata:
-- `createdAt` - ISO-8601 timestamp
-- `version` - Schema version (e.g., "2.0.0")
-- `modelType` - Output format type
-- `withFigures` - Whether figures are included
-
 ## Skipped Tables
 
 Tables parsed from PDFs but not included in the stitched model. Contains the original table data, document info, and position on page.
-
-## Figures
-
-Chart and graph data follows a similar structure with its own `columnGroups` and `tableGroups`.
