@@ -1,20 +1,10 @@
-# Understory JSON Schema Documentation
-
-Provides comprehensive documentation for the Understory API's CompanyModel JSON structure, enabling developers to build downstream applications that consume financial model data.
-
-## Trigger Phrases
-
-- "Understory model JSON"
-- "parse company model data"
-- "CompanyModel structure"
-- "Understory API response format"
-- "financial model JSON schema"
-- "extract data from Understory model"
-- "Understory cell types"
-- "columnKey format"
-- "boundingBox coordinates"
-
 ---
+name: understory-json-schema
+description: Comprehensive documentation for the Understory API's CompanyModel JSON structure. Use when working with Understory model JSON, parsing company model data, CompanyModel structure, Understory API response format, financial model JSON schema, extracting data from Understory models, Understory cell types, columnKey format, or boundingBox coordinates.
+user-invocable: false
+---
+
+# Understory JSON Schema Documentation
 
 ## OpenAPI Reference
 
